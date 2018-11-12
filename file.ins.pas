@@ -78,7 +78,8 @@ type
     file_obty_inetstr_k,               {reliable stream via internet}
     file_obty_remote_k,                {remote file on another machine}
     file_obty_embusb_k,                {Embed USB device, bi-directional byte stream}
-    file_obty_dgram_k);                {network datagrams}
+    file_obty_dgram_k,                 {network datagrams}
+    file_obty_dev_k);                  {special device}
 
   file_type_k_t = (                    {system file types we understand}
     file_type_other_k,                 {not a file type we specifically know about}
