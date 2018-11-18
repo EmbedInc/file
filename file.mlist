@@ -22,6 +22,8 @@ file_exists.obj
 file_inet.obj
 file_inet2.obj
 file_info.obj
+file_init.obj
+file_init_sys.obj
 file_inuse.obj
 file_link.obj
 file_map.obj

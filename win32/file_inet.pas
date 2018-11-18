@@ -16,6 +16,8 @@ define file_inetstr_info_local;
 define file_inetstr_info_remote;
 define file_open_inetstr;
 define file_open_inetstr_accept;
+define file_inetstr_tout_rd;
+define file_inetstr_tout_wr;
 define file_read_inetstr;
 define file_write_inetstr;
 define file_close_inet;
@@ -27,12 +29,18 @@ define file_write_dgram;
 %include 'file_inet.ins.pas';
 
 type
+  file_inetstr_dat_p_t = ^file_inetstr_dat_t;
+  file_inetstr_dat_t = record          {private CONN data for internet stream}
+    toutrd: real;                      {seconds timeout for read, 0 = none}
+    toutwr: real;                      {seconds timeout for write, 0 = none}
+    end;
+
   file_conndat_udp_p_t = ^file_conndat_udp_t;
   file_conndat_udp_t = record          {private CONN data for UDP socket}
     sockaddr: sockaddr_t;              {system info about the socket}
     end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_close_inet (            {close connection to an internet stream}
   in      conn_p: file_conn_p_t);      {pointer to user file connection handle}
@@ -49,7 +57,35 @@ begin
   conn_p^.sys := handle_none_k;
   end;
 {
-*************************************************************************
+********************************************************************************
+*
+*   Local subroutine INETSTR_CONN (CONN)
+*
+*   Initialize the I/O connection descriptor CONN for a internet stream.
+}
+procedure inetstr_conn (               {init CONN for internet stream}
+  out     conn: file_conn_t);          {connection descriptor to initialize}
+  val_param; internal;
+
+var
+  dat_p: file_inetstr_dat_p_t;         {pointer to private conn data}
+
+begin
+  file_conn_init (conn);               {initialize CONN generally}
+
+  conn.rw_mode := [file_rw_read_k, file_rw_write_k];
+  conn.obty := file_obty_inetstr_k;
+  conn.fmt := file_fmt_bin_k;
+  conn.lnum := file_lnum_nil_k;
+  conn.close_p := addr(file_close_inet); {point to our private close routine}
+
+  sys_mem_alloc (sizeof(dat_p^), dat_p); {allocate private inet stream data}
+  conn.data_p := dat_p;                {set pointer to the private data}
+  dat_p^.toutrd := 0.0;                {init to no read timeout}
+  dat_p^.toutwr := 0.0;                {init to no write timeout}
+  end;
+{
+********************************************************************************
 }
 procedure file_inetstr_info_local (    {get local end info of internet stream conn}
   in      conn: file_conn_t;           {handle to internet stream connection}
@@ -85,7 +121,7 @@ begin
   port := sockaddr.inet_port;
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_inetstr_info_remote (   {get remote end info of internet stream conn}
   in      conn: file_conn_t;           {handle to internet stream connection}
@@ -121,7 +157,7 @@ begin
   port := sockaddr.inet_port;
   end;
 {
-*************************************************************************
+********************************************************************************
 *
 *   Subroutine FILE_INET_NAME_ADR (NAME, ADR, STAT)
 *
@@ -183,7 +219,7 @@ begin
     end;
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_create_inetstr_serv (   {create internet stream server port}
   in      node: sys_inet_adr_node_t;   {inet adr or FILE_INET_NODE_ANY_K}
@@ -255,7 +291,7 @@ abort:                                 {abort on error after socket created}
   if err <> 0 then goto abort;         {error on LISTEN call ?}
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_open_inetstr_accept (   {open internet stream when client requests}
   in      port_serv: file_inet_port_serv_t; {handle to internet server port}
@@ -283,23 +319,11 @@ begin
 {
 *   Connection has been established.  Fill in connection handle.
 }
-  conn.rw_mode := [file_rw_read_k, file_rw_write_k];
-  conn.obty := file_obty_inetstr_k;
-  conn.fmt := file_fmt_bin_k;
-  conn.fnam.max := sizeof(conn.fnam.str);
-  conn.fnam.len := 0;
-  conn.gnam.max := sizeof(conn.gnam.str);
-  conn.gnam.len := 0;
-  conn.tnam.max := sizeof(conn.tnam.str);
-  conn.tnam.len := 0;
-  conn.ext_num := 0;
-  conn.lnum := file_lnum_nil_k;
-  conn.data_p := nil;
-  conn.close_p := addr(file_close_inet); {point to our private close routine}
-  conn.sys := sock;
+  inetstr_conn (conn);                 {initialize CONN for inet stream}
+  conn.sys := sock;                    {save system handle to stream}
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_open_inetstr (          {open internet stream to existing port}
   in      node: sys_inet_adr_node_t;   {internet address of node}
@@ -345,23 +369,45 @@ begin
 {
 *   Connection has been established.  Fill in connection handle.
 }
-  conn.rw_mode := [file_rw_read_k, file_rw_write_k];
-  conn.obty := file_obty_inetstr_k;
-  conn.fmt := file_fmt_bin_k;
-  conn.fnam.max := sizeof(conn.fnam.str);
-  conn.fnam.len := 0;
-  conn.gnam.max := sizeof(conn.gnam.str);
-  conn.gnam.len := 0;
-  conn.tnam.max := sizeof(conn.tnam.str);
-  conn.tnam.len := 0;
-  conn.ext_num := 0;
-  conn.lnum := file_lnum_nil_k;
-  conn.data_p := nil;
-  conn.close_p := addr(file_close_inet); {point to our private close routine}
-  conn.sys := sock;
+  inetstr_conn (conn);                 {initialize CONN for inet stream}
+  conn.sys := sock;                    {save system handle to stream}
   end;
 {
-*************************************************************************
+********************************************************************************
+}
+procedure file_inetstr_tout_rd (       {set internet stream read timeout}
+  in out  conn: file_conn_t;           {connection to the internet strea}
+  in      tout: real);                 {timeout in seconds, 0 = none}
+  val_param;
+
+var
+  dat_p: file_inetstr_dat_p_t;         {pointer to private connection data}
+
+begin
+  dat_p := conn.data_p;                {get pointer to private data}
+  if dat_p = nil then return;          {no private data (shouldn't happen) ?}
+
+  dat_p^.toutrd := tout;               {save the new timeout value}
+  end;
+{
+********************************************************************************
+}
+procedure file_inetstr_tout_wr (       {set internet stream write timeout}
+  in out  conn: file_conn_t;           {connection to the internet strea}
+  in      tout: real);                 {timeout in seconds, 0 = none}
+  val_param;
+
+var
+  dat_p: file_inetstr_dat_p_t;         {pointer to private connection data}
+
+begin
+  dat_p := conn.data_p;                {get pointer to private data}
+  if dat_p = nil then return;          {no private data (shouldn't happen) ?}
+
+  dat_p^.toutwr := tout;               {save the new timeout value}
+  end;
+{
+********************************************************************************
 *
 *   Subroutine FILE_READ_INETSTR (CONN, ILEN, FLAGS, BUF, OLEN, STAT)
 *
@@ -390,18 +436,23 @@ const
   show_err_codes = false;              {debug switch to show low level error codes}
 
 var
+  dat_p: file_inetstr_dat_p_t;         {pointer to private connection data}
   n_left: sys_int_adr_t;               {number of bytes left to stuff into BUF}
   n_chunk: win_dword_t;                {number of bytes read in this chunk}
   put_p: sys_size1_p_t;                {points to next byte to write into BUF}
   overlap: overlap_t;                  {overalpped I/O control block}
   err: sys_sys_err_t;                  {system error code}
   ok: win_bool_t;                      {not zero on system call success}
+  donewait: donewait_k_t;              {reason wait completed}
+  tout: win_dword_t;                   {timeout value in system format}
 
 label
   leave;
 
 begin
   sys_error_none(stat);                {init to no error occurred}
+
+  dat_p := conn.data_p;                {get pointer to private data for this connection}
 
   n_left := ilen;                      {init number of bytes left to return}
   put_p := addr(buf);                  {init pointer to next byte to write}
@@ -430,8 +481,33 @@ begin
           end;
         goto leave;                    {return with hard error}
         end;
-      ok := GetOverlappedResult (      {wait for I/O operation to complete}
-        conn.sys,                      {handle I/O operation in progress on}
+      {
+      *   The I/O operation was started, but ReadFile returned before it
+      *   completed.  The event in the overlap structure will be signalled when
+      *   the I/O operation does complete.
+      }
+      tout := timeout_infinite_k;      {init to no timeout, wait indefinitely}
+      if (dat_p <> nil) and then (dat_p^.toutrd > 0.0) then begin {timeout supplied ?}
+        tout := round(max(1.0, dat_p^.toutrd * 1000.0)); {convert to integer milliseconds}
+        end;
+      donewait := WaitForSingleObject ( {wait for I/O completed or timeout}
+        overlap.event_h,               {event to wait on}
+        tout);                         {maximum time to wait}
+      case donewait of
+donewait_failed_k: begin               {hard error ?}
+          stat.sys := GetLastError;
+          goto leave;
+          end;
+donewait_timeout_k: begin              {timed out, I/O didn't complete ?}
+          sys_stat_set (file_subsys_k, file_stat_timeout_k, stat);
+          goto leave;
+          end;
+        end;
+      {
+      *   The I/O operation completed.
+      }
+      ok := GetOverlappedResult (      {get info about the I/O operation}
+        conn.sys,                      {handle I/O operation is in progress on}
         overlap,                       {overlap control block for this operation}
         n_chunk,                       {number of bytes actually read}
         win_bool_true_k);              {wait for I/O to complete}
@@ -442,6 +518,12 @@ begin
           end;
         goto leave;
         end;
+      end;
+    olen := olen + n_chunk;            {update amount of data actually read}
+    if
+        (olen > 0) and                 {have some data ?}
+        (file_rdstream_1chunk_k in flags) then begin {return when anything received ?}
+      goto leave;
       end;
     if n_chunk = 0 then begin          {connection got closed ?}
       if show_err_codes then begin
@@ -457,11 +539,6 @@ begin
           sys_stat_parm_int (olen, stat);
           end
         ;
-      goto leave;
-      end;
-    olen := olen + n_chunk;            {update amount of data actually read}
-
-    if file_rdstream_1chunk_k in flags then begin {return with whatever have ?}
       goto leave;
       end;
 
@@ -480,7 +557,7 @@ leave:
     end;
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_write_inetstr (         {write to an internet stream}
   in      buf: univ sys_size1_t;       {data to write}
@@ -490,10 +567,13 @@ procedure file_write_inetstr (         {write to an internet stream}
   val_param;
 
 var
+  dat_p: file_inetstr_dat_p_t;         {pointer to private connection data}
   olen: win_dword_t;                   {number of bytes actually written}
   overlap: overlap_t;                  {overalpped I/O control block}
   err: sys_sys_err_t;                  {system error code}
   ok: win_bool_t;                      {not zero on system call success}
+  donewait: donewait_k_t;              {reason wait completed}
+  tout: win_dword_t;                   {timeout value in system format}
 
 label
   leave;
@@ -501,6 +581,8 @@ label
 begin
   sys_error_none (stat);               {init to no errors encountered}
   if len = 0 then return;              {nothing to write ?}
+
+  dat_p := conn.data_p;                {get pointer to private data for this connection}
 
   overlap.offset := 0;                 {file offsets not used on streams}
   overlap.offset_high := 0;
@@ -522,7 +604,32 @@ begin
       stat.sys := err;                 {pass back error code}
       goto leave;                      {return with hard error}
       end;
-    ok := GetOverlappedResult (        {wait for I/O operation to complete}
+    {
+    *   The I/O operation was started, but WriteFile returned before it
+    *   completed.  The event in the overlap structure will be signalled when
+    *   the I/O operation does complete.
+    }
+    tout := timeout_infinite_k;        {init to no timeout, wait indefinitely}
+    if (dat_p <> nil) and then (dat_p^.toutwr > 0.0) then begin {timeout supplied ?}
+      tout := round(max(1.0, dat_p^.toutwr * 1000.0)); {convert to integer milliseconds}
+      end;
+    donewait := WaitForSingleObject (  {wait for I/O completed or timeout}
+      overlap.event_h,                 {event to wait on}
+      tout);                           {maximum time to wait}
+    case donewait of
+donewait_failed_k: begin               {hard error ?}
+        stat.sys := GetLastError;
+        goto leave;
+        end;
+donewait_timeout_k: begin              {timed out, I/O didn't complete ?}
+        sys_stat_set (file_subsys_k, file_stat_timeout_k, stat);
+        goto leave;
+        end;
+      end;
+    {
+    *   The I/O operation completed.
+    }
+    ok := GetOverlappedResult (        {get info about the I/O operation}
       conn.sys,                        {handle I/O operation in progress on}
       overlap,                         {overlap control block for this operation}
       olen,                            {number of bytes actually read}
@@ -544,7 +651,7 @@ leave:
   discard( CloseHandle(overlap.event_h) ); {deallocate I/O completion event}
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_open_dgram_client (     {set up for sending datagrams to remote server}
   in      node: sys_inet_adr_node_t;   {internet address of node}
@@ -599,7 +706,7 @@ begin
   conn.sys := sock;
   end;
 {
-*************************************************************************
+********************************************************************************
 }
 procedure file_write_dgram (           {send network datagram}
   in      buf: univ sys_size1_t;       {data to write}

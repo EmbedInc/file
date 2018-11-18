@@ -33,6 +33,8 @@ call src_pas %srcdir% %libname%_exists %1
 call src_pas %srcdir% %libname%_inet %1
 call src_pas %srcdir% %libname%_inet2 %1
 call src_pas %srcdir% %libname%_info %1
+call src_pas %srcdir% %libname%_init %1
+call src_pas %srcdir% %libname%_init_sys %1
 call src_pas %srcdir% %libname%_inuse %1
 call src_pas %srcdir% %libname%_link %1
 call src_pas %srcdir% %libname%_map %1

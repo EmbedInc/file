@@ -106,6 +106,9 @@ msg err30
 msg err31
   lan english -def
     USB device with VID %p2i, PID %p3i, and name "%p1s" is in use.
+msg err32
+  lan english -def
+    I/O operation timed out.
 /*
 /*   Other messages that do not have status codes.
 /*

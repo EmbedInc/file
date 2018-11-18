@@ -53,6 +53,7 @@ const
   file_stat_usbid_nfound_k = 29;       {USB device with VID/PID not found}
   file_stat_usbidn_nfound_k = 30;      {USB device with VID/PID and name not found}
   file_stat_usbdev_busy_k = 31;        {USB device with VID/PID and name is busy}
+  file_stat_timeout_k = 32;            {timeout reached before I/O completed}
 {
 *   Mnemonics for special flags for the line number (LNUM) field in a connection
 *   handle (FILE_CONN_T).
@@ -324,6 +325,16 @@ procedure file_inetstr_info_remote (   {get remote end info of internet stream c
   out     adr: sys_inet_adr_node_t;    {internet node address}
   out     port: sys_inet_port_id_t;    {port on node ADR}
   out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
+procedure file_inetstr_tout_rd (       {set internet stream read timeout}
+  in out  conn: file_conn_t;           {connection to the internet strea}
+  in      tout: real);                 {timeout in seconds, 0 = none}
+  val_param; extern;
+
+procedure file_inetstr_tout_wr (       {set internet stream write timeout}
+  in out  conn: file_conn_t;           {connection to the internet strea}
+  in      tout: real);                 {timeout in seconds, 0 = none}
   val_param; extern;
 
 procedure file_info (                  {get information about a file}

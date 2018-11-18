@@ -102,6 +102,14 @@ procedure file_close_textr (           {close conn opened with FILE_OPEN_READ_TE
   in      conn_p: file_conn_p_t);      {pointer to our connection handle}
   val_param; extern;
 
+procedure file_conn_init (             {initialize I/O connection descriptor}
+  out     conn: file_conn_t);          {initialized to default or benign values}
+  val_param; extern;
+
+procedure file_conn_init_sys (         {init system-dependent part of I/O connection}
+  in out  conn: file_conn_t);          {initialized to default or benign values}
+  val_param; extern;
+
 procedure file_csrv_close_txw (        {close remote COGSERVE text write file}
   in      conn_p: file_conn_p_t);      {pointer to our connection handle}
   val_param; extern;
