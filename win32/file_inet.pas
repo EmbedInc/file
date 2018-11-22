@@ -28,11 +28,19 @@ define file_write_dgram;
 %include 'file_sys2.ins.pas';
 %include 'file_inet.ins.pas';
 
+const
+  str_inbuf_size = 2048;               {internet stream input buffer size, bytes}
+  str_inbuf_last = str_inbuf_size - 1; {last valid internet stream input buf index}
+
 type
   file_inetstr_dat_p_t = ^file_inetstr_dat_t;
   file_inetstr_dat_t = record          {private CONN data for internet stream}
     toutrd: real;                      {seconds timeout for read, 0 = none}
     toutwr: real;                      {seconds timeout for write, 0 = none}
+    ibuf:                              {input buffer}
+      array[0..str_inbuf_last] of int8u_t;
+    ibufn: win_dword_t;                {number of bytes in IBUF}
+    ibufr: sys_int_machine_t;          {IBUF index of next byte to read}
     end;
 
   file_conndat_udp_p_t = ^file_conndat_udp_t;
@@ -83,6 +91,8 @@ begin
   conn.data_p := dat_p;                {set pointer to the private data}
   dat_p^.toutrd := 0.0;                {init to no read timeout}
   dat_p^.toutwr := 0.0;                {init to no write timeout}
+  dat_p^.ibufn := 0;                   {init the input buffer to empty}
+  dat_p^.ibufr := 0;
   end;
 {
 ********************************************************************************
@@ -438,13 +448,13 @@ const
 var
   dat_p: file_inetstr_dat_p_t;         {pointer to private connection data}
   n_left: sys_int_adr_t;               {number of bytes left to stuff into BUF}
-  n_chunk: win_dword_t;                {number of bytes read in this chunk}
   put_p: sys_size1_p_t;                {points to next byte to write into BUF}
   overlap: overlap_t;                  {overalpped I/O control block}
   err: sys_sys_err_t;                  {system error code}
   ok: win_bool_t;                      {not zero on system call success}
   donewait: donewait_k_t;              {reason wait completed}
   tout: win_dword_t;                   {timeout value in system format}
+  ovl_event: boolean;                  {event in OVERLAP has been created}
 
 label
   leave;
@@ -453,28 +463,60 @@ begin
   sys_error_none(stat);                {init to no error occurred}
 
   dat_p := conn.data_p;                {get pointer to private data for this connection}
+  if dat_p = nil then begin
+    writeln ('INTERNAL ERROR: Data pointer NIL in FILE_READ_INETSTR.');
+    sys_bomb;
+    end;
 
   n_left := ilen;                      {init number of bytes left to return}
   put_p := addr(buf);                  {init pointer to next byte to write}
   olen := 0;                           {init amount of data actually read}
-  overlap.offset := 0;                 {file offsets not used on streams}
-  overlap.offset_high := 0;
-  overlap.event_h := CreateEventA (    {create event for overalpped I/O}
-    nil,                               {no security attributes supplied}
-    win_bool_true_k,                   {no automatic event reset on successful wait}
-    win_bool_false_k,                  {init event to not triggered}
-    nil);                              {no name supplied}
+  ovl_event := false;                  {system event not created yet}
 
   while n_left > 0 do begin            {keep looping until got everything}
-    ok := ReadFile (                   {try to read requested info from stream}
+    if dat_p^.ibufn > 0 then begin     {there is previously-read data to return ?}
+      put_p^ := dat_p^.ibuf[dat_p^.ibufr]; {return next byte from the input buffer}
+      dat_p^.ibufn := dat_p^.ibufn - 1; {count one less buffered byte available}
+      dat_p^.ibufr := dat_p^.ibufr + 1; {update buffer read index}
+      put_p := succ(put_p);            {update returned data write pointer}
+      olen := olen + 1;                {count one more byte returned}
+      n_left := n_left - 1;            {count one less byte left to return}
+      next;                            {back to check for more bytes left to return}
+      end;
+    {
+    *   The internal buffer is empty.  Any byte that was in the buffer has
+    *   already been returned to the caller.
+    }
+    if
+        (olen > 0) and                 {at least one byte was returned ?}
+        (file_rdstream_1chunk_k in flags) then begin {return when anything received ?}
+      goto leave;
+      end;
+    {
+    *   Read the next available chunk of data into the internal buffer.
+    }
+    dat_p^.ibufr := 0;                 {reset buffer read index to start of buffer}
+
+    overlap.offset := 0;               {file offsets not used on streams}
+    overlap.offset_high := 0;
+    if not ovl_event then begin        {event in OVERLAP not created yet ?}
+      overlap.event_h := CreateEventA ( {create event for overalpped I/O}
+        nil,                           {no security attributes supplied}
+        win_bool_true_k,               {no automatic event reset on successful wait}
+        win_bool_false_k,              {init event to not triggered}
+        nil);                          {no name supplied}
+      ovl_event := true;               {remember that the event handle is open}
+      end;
+
+    ok := ReadFile (                   {read next chunk of data into internal buffer}
       conn.sys,                        {system I/O connection handle}
-      put_p^,                          {input buffer}
-      n_left,                          {number of bytes to try to read}
-      n_chunk,                         {number of bytes actually read}
+      dat_p^.ibuf,                     {buffer to read the data into}
+      str_inbuf_size,                  {max number of bytes to read}
+      dat_p^.ibufn,                    {number of bytes actually received}
       addr(overlap));                  {pointer to overlapped I/O control block}
-    if ok = win_bool_false_k then begin {error on ReadFile}
+    if ok = win_bool_false_k then begin {read did not complete immediately ?}
       err := GetLastError;             {get reason ReadFile failed}
-      if err <> err_io_pending_k then begin {not just overlapped I/O ?}
+      if err <> err_io_pending_k then begin {hard error, not just overlapped I/O ?}
         stat.sys := err;               {pass back error code}
         if show_err_codes then begin
           writeln ('FILE_READ_INETSTR: error ', stat.sys, ' from ReadFile');
@@ -487,7 +529,7 @@ begin
       *   the I/O operation does complete.
       }
       tout := timeout_infinite_k;      {init to no timeout, wait indefinitely}
-      if (dat_p <> nil) and then (dat_p^.toutrd > 0.0) then begin {timeout supplied ?}
+      if dat_p^.toutrd > 0.0 then begin {timeout supplied ?}
         tout := round(max(1.0, dat_p^.toutrd * 1000.0)); {convert to integer milliseconds}
         end;
       donewait := WaitForSingleObject ( {wait for I/O completed or timeout}
@@ -509,7 +551,7 @@ donewait_timeout_k: begin              {timed out, I/O didn't complete ?}
       ok := GetOverlappedResult (      {get info about the I/O operation}
         conn.sys,                      {handle I/O operation is in progress on}
         overlap,                       {overlap control block for this operation}
-        n_chunk,                       {number of bytes actually read}
+        dat_p^.ibufn,                  {number of bytes actually received}
         win_bool_true_k);              {wait for I/O to complete}
       if ok = win_bool_false_k then begin {system call failed ?}
         stat.sys := GetLastError;
@@ -518,14 +560,9 @@ donewait_timeout_k: begin              {timed out, I/O didn't complete ?}
           end;
         goto leave;
         end;
-      end;
-    olen := olen + n_chunk;            {update amount of data actually read}
-    if
-        (olen > 0) and                 {have some data ?}
-        (file_rdstream_1chunk_k in flags) then begin {return when anything received ?}
-      goto leave;
-      end;
-    if n_chunk = 0 then begin          {connection got closed ?}
+      end;                             {end of I/O operation didn't complete immediately}
+
+    if dat_p^.ibufn = 0 then begin     {connection got closed ?}
       if show_err_codes then begin
         writeln ('FILE_READ_INETSTR: 0 bytes returned by ReadFile');
         end;
@@ -540,15 +577,13 @@ donewait_timeout_k: begin              {timed out, I/O didn't complete ?}
           end
         ;
       goto leave;
-      end;
-
-    n_left := n_left - n_chunk;        {update number of bytes left to read}
-    put_p := univ_ptr(                 {update pointer to where to read next byte}
-      sys_int_adr_t(put_p) + n_chunk);
-    end;                               {try again if more left to read}
+      end;                             {end of EOF case}
+    end;                               {back to return new buffer bytes to the caller}
 
 leave:
-  discard( CloseHandle(overlap.event_h) ); {deallocate I/O completion event}
+  if ovl_event then begin              {event handle is open ?}
+    discard( CloseHandle(overlap.event_h) ); {deallocate I/O completion event}
+    end;
   if                                   {check for errors that should be reported as EOF}
       (stat.sys = err_net_gone_k) or
       (stat.sys = 64)
@@ -599,7 +634,7 @@ begin
     olen,                              {number of bytes actually written}
     addr(overlap));                    {pointer to overlapped I/O control block}
   if ok = win_bool_false_k then begin  {error on WriteFile}
-    err := GetLastError;               {get reason ReadFile failed}
+    err := GetLastError;               {get reason WriteFile failed}
     if err <> err_io_pending_k then begin {not just overlapped I/O ?}
       stat.sys := err;                 {pass back error code}
       goto leave;                      {return with hard error}
