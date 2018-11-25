@@ -20,7 +20,6 @@ define file_inetstr_tout_rd;
 define file_inetstr_tout_wr;
 define file_read_inetstr;
 define file_write_inetstr;
-define file_close_inet;
 define file_open_dgram_client;
 define file_write_dgram;
 
@@ -49,20 +48,26 @@ type
     end;
 {
 ********************************************************************************
+*
+*   Local subroutine FILE_CLOSE_INET (CONN_P)
+*
+*   Perform the close process private to this module on the connection pointed
+*   to by CONN_P.
+*
+*   This same routine is used to close connections open to internet streams and
+*   datagrams.  The private data is different between these two.  In any case,
+*   the private data will be automatically deallcated by the higher level
+*   generic FILE_CLOSE routine this routine is called by.
 }
 procedure file_close_inet (            {close connection to an internet stream}
   in      conn_p: file_conn_p_t);      {pointer to user file connection handle}
   val_param;
 
-var
-  err: sys_int_machine_t;              {error flag from system routine}
-
 begin
-  err := closesocket (conn_p^.sys);
-  if err <> 0 then begin
-    sys_sys_error_bomb ('file', 'close_inet_stream', nil, 0);
+  if conn_p^.sys <> handle_none_k then begin {system handle is open ?}
+    discard( closesocket (conn_p^.sys) );
+    conn_p^.sys := handle_none_k;
     end;
-  conn_p^.sys := handle_none_k;
   end;
 {
 ********************************************************************************
@@ -86,6 +91,7 @@ begin
   conn.fmt := file_fmt_bin_k;
   conn.lnum := file_lnum_nil_k;
   conn.close_p := addr(file_close_inet); {point to our private close routine}
+  conn.sys := handle_none_k;
 
   sys_mem_alloc (sizeof(dat_p^), dat_p); {allocate private inet stream data}
   conn.data_p := dat_p;                {set pointer to the private data}

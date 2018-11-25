@@ -255,10 +255,10 @@ msg read_dir
     Error on trying to read next entry from directory.
 msg read_inetstr_client
   lan english -def
-    Error on trying to read data from internet stream to server.
+    Error on trying to read data from internet stream to client.
 msg read_inetstr_server
   lan english -def
-    Error on trying to read data from internet stream to client.
+    Error on trying to read data from internet stream to server.
 msg read_input_bin
   lan english -def
     Error occurred on reading from binary input file.

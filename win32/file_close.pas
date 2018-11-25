@@ -35,8 +35,10 @@ begin
       end
     else begin
       conn.close_p^ (addr(conn));      {call specific close routine}
+      conn.close_p := nil;
       end
     ;
+
   if conn.data_p <> nil then begin     {need to deallocate private data block ?}
     sys_mem_dealloc (conn.data_p);
     end;
