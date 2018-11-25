@@ -618,6 +618,10 @@ begin
   if len = 0 then return;              {nothing to write ?}
 
   dat_p := conn.data_p;                {get pointer to private data for this connection}
+  if dat_p = nil then begin
+    writeln ('INTERNAL ERROR: Data pointer NIL in FILE_READ_INETSTR.');
+    sys_bomb;
+    end;
 
   overlap.offset := 0;                 {file offsets not used on streams}
   overlap.offset_high := 0;
@@ -645,7 +649,7 @@ begin
     *   the I/O operation does complete.
     }
     tout := timeout_infinite_k;        {init to no timeout, wait indefinitely}
-    if (dat_p <> nil) and then (dat_p^.toutwr > 0.0) then begin {timeout supplied ?}
+    if dat_p^.toutwr > 0.0 then begin  {write timeout supplied ?}
       tout := round(max(1.0, dat_p^.toutwr * 1000.0)); {convert to integer milliseconds}
       end;
     donewait := WaitForSingleObject (  {wait for I/O completed or timeout}
