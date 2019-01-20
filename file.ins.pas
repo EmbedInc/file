@@ -87,6 +87,7 @@ type
     file_type_data_k,                  {regular data file}
     file_type_dir_k,                   {directory of nested files}
     file_type_link_k);                 {symbolic link}
+  file_type_t = set of file_type_k_t;
 
   file_fmt_k_t = (                     {mnemonics for file data formats}
     file_fmt_bin_k,                    {binary, arbitrary data}
