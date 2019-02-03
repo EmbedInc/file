@@ -1,13 +1,15 @@
-{   Subroutine FILE_CLOSE (CONN)
-*
-*   Close the file connection indicated by CONN.  CONN will be invalid.
-*
-}
 module file_close;
 define file_close;
+define file_close_sysconn;
 %include 'file2.ins.pas';
 %include 'file_sys2.ins.pas';
-
+{
+********************************************************************************
+*
+*   Subroutine FILE_CLOSE (CONN)
+*
+*   Close the file connection indicated by CONN.  CONN will be invalid.
+}
 procedure file_close (                 {close a file connection}
   in out  conn: file_conn_t);          {handle to file connection}
 
@@ -42,4 +44,18 @@ begin
   if conn.data_p <> nil then begin     {need to deallocate private data block ?}
     sys_mem_dealloc (conn.data_p);
     end;
+  end;
+{
+********************************************************************************
+*
+*   Subroutine FILE_CLOSE_SYSCONN (SYSCONN)
+*
+*   Close the native system I/O handle SYSCONN.
+}
+procedure file_close_sysconn (         {close system I/O connection handle}
+  in      sysconn: sys_sys_file_conn_t); {system I/O handle to close}
+  val_param;
+
+begin
+  discard( CloseHandle(sysconn) );
   end;

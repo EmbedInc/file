@@ -214,6 +214,10 @@ procedure file_close (                 {close a connection, truncate when approp
   in out  conn: file_conn_t);          {handle to file connection}
   val_param; extern;
 
+procedure file_close_sysconn (         {close system I/O connection handle}
+  in      sysconn: sys_sys_file_conn_t); {system I/O handle to close}
+  val_param; extern;
+
 procedure file_copy (                  {copy a file to another place}
   in      src: univ string_var_arg_t;  {source file name}
   in      dest: univ string_var_arg_t; {destination file name}
@@ -470,6 +474,20 @@ procedure file_open_stream_bin (       {create binary connection to system strea
 
 procedure file_open_stream_text (      {create text connection to system stream}
   in      stream_id: sys_sys_iounit_t; {system stream ID to connect to}
+  in      rw_mode: file_rw_t;          {intended read/write access}
+  out     conn: file_conn_t;           {handle to newly created file connection}
+  out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
+procedure file_open_sysconn_bin (      {create binary connection to system I/O conn}
+  in      sysconn: sys_sys_file_conn_t; {system I/O ID to connect to}
+  in      rw_mode: file_rw_t;          {intended read/write access}
+  out     conn: file_conn_t;           {handle to newly created file connection}
+  out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
+procedure file_open_sysconn_text (     {create text connection to system I/O conn}
+  in      sysconn: sys_sys_file_conn_t; {system I/O ID to connect to}
   in      rw_mode: file_rw_t;          {intended read/write access}
   out     conn: file_conn_t;           {handle to newly created file connection}
   out     stat: sys_err_t);            {completion status code}
