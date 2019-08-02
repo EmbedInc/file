@@ -15,7 +15,7 @@ var
   info: file_info_t;                   {unused}
 
 label
-  next_file, finished;
+  finished;
 
 var
   dnam: string_treename_t;             {directory}
@@ -27,30 +27,43 @@ var
   msg_parm: array[1..1] of sys_parm_msg_t; {message parameter array}
 
 begin
-  dnam.max := sizeof(dnam.str); dnam.len := 0; {init directory name string}
-  tnam.max := sizeof(tnam.str); tnam.len := 0; {init abs treename string}
-  lnam.max := sizeof(lnam.str); lnam.len := 0; {init leaf name string}
-  nam.max := sizeof(nam.str); nam.len := 0; {init general leaf name string}
+  dnam.max := size_char(dnam.str);     {init local var strings}
+  tnam.max := size_char(tnam.str);
+  lnam.max := size_char(lnam.str);
+  nam.max := size_char(nam.str);
   file_exists := false;                {init returned value}
+
   string_treename (fnam, tnam);        {get abs treename}
   string_pathname_split (tnam, dnam, lnam); {get directory and leafname}
-  file_open_read_dir (dnam, conn, stat); {open the directory for reading}
-  if file_not_found (stat) then return; {directory found?}
-  sys_msg_parm_vstr (msg_parm[1], dnam); {load up directory in case of error}
-  sys_error_abort (stat, 'file', 'open_dir', msg_parm, 1); {some other error?}
+  if not sys_fnam_case then begin      {file name are case-insensitive ?}
+    string_upcase (lnam);              {make upper case}
+    end;
 
-next_file:
-  file_read_dir (                      {read next directory entry}
-    conn,                              {handle to directory connection}
-    [],                                {no additional info is being requested}
-    nam,                               {returned file name}
-    info,                              {additional file info (unused)}
-    stat);
-  if file_eof(stat) then goto finished; {all files compared?}
-  sys_error_abort (stat, 'file', 'read_dir', nil, 0); {some other error?}
-  if not string_equal(lnam, nam) then goto next_file; {file name not matched?}
+  file_open_read_dir (dnam, conn, stat); {open the directory for reading}
+  if file_not_found (stat) then return; {no such directory ?}
+  if sys_error(stat) then begin        {hard error ?}
+    sys_msg_parm_vstr (msg_parm[1], dnam);
+    sys_error_abort (stat, 'file', 'open_dir', msg_parm, 1);
+    end;
+
+  while true do begin                  {back here each new directory entry}
+    file_read_dir (                    {read next directory entry}
+      conn,                            {handle to directory connection}
+      [],                              {no additional info is being requested}
+      nam,                             {returned directory entry name}
+      info,                            {additional file info (unused)}
+      stat);
+    if file_eof(stat) then goto finished; {all ents compared, didn't find file ?}
+    sys_error_abort (stat, 'file', 'read_dir', nil, 0);
+
+    if not sys_fnam_case then begin    {file names are not case sensitive ?}
+      string_upcase (nam);             {make this directory entry upper case}
+      end;
+    if string_equal(lnam, nam) then exit; {found the file ?}
+    end;                               {back to check next directory entry}
+
   file_exists := true;                 {file exists}
-finished:
+
+finished:                              {function value is all set}
   file_close (conn);                   {close the directory for reading}
   end;
-
