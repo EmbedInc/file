@@ -81,7 +81,7 @@ var
   token: string_var80_t;               {string expansion of parm value}
   fw: string_index_t;                  {max allowed field width}
   nd: sys_int_machine_t;               {max allowed digits right of decimal point}
-  rval: real;                          {value of floating point parameter}
+  rval: sys_fp_max_t;                  {value of floating point parameter}
 
 label
   next_char, parm_mismatch;
