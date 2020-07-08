@@ -109,6 +109,9 @@ msg err31
 msg err32
   lan english -def
     I/O operation timed out.
+msg err33
+  lan english -def
+    The I/O connection is closed.
 /*
 /*   Other messages that do not have status codes.
 /*

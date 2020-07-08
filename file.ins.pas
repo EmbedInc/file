@@ -54,6 +54,7 @@ const
   file_stat_usbidn_nfound_k = 30;      {USB device with VID/PID and name not found}
   file_stat_usbdev_busy_k = 31;        {USB device with VID/PID and name is busy}
   file_stat_timeout_k = 32;            {timeout reached before I/O completed}
+  file_stat_closed_k = 33;             {the I/O connection is closed}
 {
 *   Mnemonics for special flags for the line number (LNUM) field in a connection
 *   handle (FILE_CONN_T).
