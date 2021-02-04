@@ -113,10 +113,10 @@ otherwise
       string_f_fp (                    {convert file length to string}
         tk,                            {output string}
         info.len,                      {input number}
-        11,                            {fixed field width}
+        15,                            {fixed field width}
         0,                             {exponent field width}
         0,                             {min required significant digits}
-        11,                            {max allowed digits left of point}
+        15,                            {max allowed digits left of point}
         0,                             {min required digits right of point}
         0,                             {max allowed digits right of point}
         [                              {set of option flags}
