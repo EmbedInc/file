@@ -74,6 +74,12 @@ var (file2)                            {private common block for FILE library}
 {
 *   Private subroutines.
 }
+procedure file_call_wtxt (             {write text line to callback object}
+  in      buf: univ string_var_arg_t;  {string to write as text line}
+  in out  conn: file_conn_t;           {handle to this I/O connection}
+  out     stat: sys_err_t);            {completion code, initialized to no err}
+  val_param; extern;
+
 procedure file_close_embusb (          {close connection to Embed USB device}
   in      conn_p: file_conn_p_t);      {pointer to the connection to close}
   val_param; extern;
@@ -125,6 +131,24 @@ procedure file_csrv_txw_write (        {write line to COGSERVE remote text file}
   out     stat: sys_err_t);            {completion status code}
   val_param; extern;
 
+procedure file_embusb_sys_enum (       {adds all known Embed USB devices to list}
+  in out  devs: file_usbdev_list_t);   {list to add to, must be previously started}
+  val_param; extern;
+
+function file_embusb_sys_open_data (   {open exclusive data-transfer conn to USB dev}
+  in      path: univ string_var_arg_t; {base system pathname of the device}
+  in      drtype: sys_int_machine_t;   {driver type ID, 1 old, 2 new}
+  out     stat: sys_err_t)             {completion status}
+  :sys_sys_file_conn_t;                {returned I/O connection handle}
+  val_param; extern;
+
+function file_embusb_sys_open_info (   {open non-exclusive info-only conn to USB dev}
+  in      path: univ string_var_arg_t; {base system pathname of the device}
+  in      drtype: sys_int_machine_t;   {driver type ID, 1 old, 2 new}
+  out     stat: sys_err_t)             {completion status}
+  :sys_sys_file_conn_t;                {returned I/O connection handle}
+  val_param; extern;
+
 procedure file_name_init (             {init for creating file names from user args}
   in      name: univ string_var_arg_t; {file name}
   in      ext: string;                 {suffixes string}
@@ -174,20 +198,8 @@ procedure file_usbdev_list_start (     {start a new USB devices list, alloc reso
   out     list: file_usbdev_list_t);   {the list to start}
   val_param; extern;
 
-procedure file_embusb_sys_enum (       {adds all known Embed USB devices to list}
-  in out  devs: file_usbdev_list_t);   {list to add to, must be previously started}
-  val_param; extern;
-
-function file_embusb_sys_open_data (   {open exclusive data-transfer conn to USB dev}
-  in      path: univ string_var_arg_t; {base system pathname of the device}
-  in      drtype: sys_int_machine_t;   {driver type ID, 1 old, 2 new}
-  out     stat: sys_err_t)             {completion status}
-  :sys_sys_file_conn_t;                {returned I/O connection handle}
-  val_param; extern;
-
-function file_embusb_sys_open_info (   {open non-exclusive info-only conn to USB dev}
-  in      path: univ string_var_arg_t; {base system pathname of the device}
-  in      drtype: sys_int_machine_t;   {driver type ID, 1 old, 2 new}
-  out     stat: sys_err_t)             {completion status}
-  :sys_sys_file_conn_t;                {returned I/O connection handle}
+procedure file_wtxt_file (             {write text line, obj type is FILE}
+  in      buf: univ string_var_arg_t;  {string to write as text line}
+  in out  conn: file_conn_t;           {handle to this file connection}
+  out     stat: sys_err_t);            {completion code, initialized to no err}
   val_param; extern;

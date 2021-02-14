@@ -1,21 +1,25 @@
-{   Subroutine FILE_WRITE_TEXT (BUF, CONN, STAT)
-*
-*   Write one line to the text file indicated by CONN.  The string in BUF will
-*   become the line of text.  STAT is returned as the completion code.
-}
-module file_write_text;
-define file_write_text;
+module file_wtxt_file;
+define file_wtxt_file;
 %include 'file2.ins.pas';
 %include 'file_sys2.ins.pas';
 
 var
   eol: array[1..2] of int8u_t :=       {end of line sequence}
     [13, 10];                          {carriage return, line feed}
-
-procedure file_write_text (            {write one line to text file}
-  in      buf: univ string_var_arg_t;  {string to write to line}
+{
+********************************************************************************
+*
+*   Subroutine FILE_WTXT_FILE (BUF, CONN, STAT)
+*
+*   Write one line to the text file indicated by CONN.  The string in BUF will
+*   become the line of text.  STAT is returned as the completion code, and has
+*   already been initialized to no error.
+}
+procedure file_wtxt_file (             {write text line, obj type is FILE}
+  in      buf: univ string_var_arg_t;  {string to write as text line}
   in out  conn: file_conn_t;           {handle to this file connection}
-  out     stat: sys_err_t);            {completion status code}
+  out     stat: sys_err_t);            {completion code, initialized to no err}
+  val_param;
 
 var
   rlen: win_dword_t;                   {requested write length}
@@ -26,12 +30,6 @@ label
   not_enough;
 
 begin
-  if conn.obty = file_obty_remote_k then begin {file is on remote server ?}
-    file_csrv_txw_write (buf, conn, stat);
-    return;
-    end;
-
-  sys_error_none (stat);               {init to no error}
 {
 *   Write all the data from the caller's buffer to the file.
 }

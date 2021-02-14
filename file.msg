@@ -112,6 +112,10 @@ msg err32
 msg err33
   lan english -def
     The I/O connection is closed.
+msg err34
+  lan english -def
+    Text write is not supported for this object type.  Object name "%p1s",
+    object type ID %p2i.
 /*
 /*   Other messages that do not have status codes.
 /*

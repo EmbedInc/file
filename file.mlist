@@ -1,4 +1,5 @@
 csrv_client.obj
+file_call.obj
 file_close.obj
 file_close_dir.obj
 file_close_env.obj
@@ -62,3 +63,4 @@ file_usb.obj
 file_write_bin.obj
 file_write_sio_rec.obj
 file_write_text.obj
+file_wtxt_file.obj

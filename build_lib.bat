@@ -10,6 +10,7 @@ call build_pasinit
 call src_insall %srcdir% %libname%
 
 call src_pas %srcdir% csrv_client %1
+call src_pas %srcdir% %libname%_call %1
 call src_pas %srcdir% %libname%_close %1
 call src_pas %srcdir% %libname%_close_dir %1
 call src_pas %srcdir% %libname%_close_env %1
@@ -73,6 +74,7 @@ call src_pas %srcdir% %libname%_usb %1
 call src_pas %srcdir% %libname%_write_bin %1
 call src_pas %srcdir% %libname%_write_sio_rec %1
 call src_pas %srcdir% %libname%_write_text %1
+call src_pas %srcdir% %libname%_wtxt_file %1
 
 call src_lib %srcdir% %libname%
 call src_msg %srcdir% %libname%

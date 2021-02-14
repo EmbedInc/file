@@ -40,6 +40,7 @@ const
   file_stat_usbdev_busy_k = 31;        {USB device with VID/PID and name is busy}
   file_stat_timeout_k = 32;            {timeout reached before I/O completed}
   file_stat_closed_k = 33;             {the I/O connection is closed}
+  file_stat_wtxt_badobj_k = 34;        {text write not supported for this object type}
 {
 *   Mnemonics for special flags for the line number (LNUM) field in a connection
 *   handle (FILE_CONN_T).
@@ -66,7 +67,8 @@ type
     file_obty_remote_k,                {remote file on another machine}
     file_obty_embusb_k,                {Embed USB device, bi-directional byte stream}
     file_obty_dgram_k,                 {network datagrams}
-    file_obty_dev_k);                  {special device}
+    file_obty_call_k,                  {I/O causes calls to callback routines}
+    file_obty_dev_k);                  {arbitrary special device}
 
   file_type_k_t = (                    {system file types we understand}
     file_type_other_k,                 {not a file type we specifically know about}
@@ -660,9 +662,9 @@ procedure file_write_sio_rec (         {write record to serial line}
   out     stat: sys_err_t);            {completion status code}
   val_param; extern;
 
-procedure file_write_text (            {write one line to text file}
-  in      buf: univ string_var_arg_t;  {string to write to line}
-  in out  conn: file_conn_t;           {handle to this file connection}
+procedure file_write_text (            {write string as one line of text}
+  in      buf: univ string_var_arg_t;  {string to write as text line}
+  in out  conn: file_conn_t;           {handle to this I/O connection}
   out     stat: sys_err_t);            {completion status code}
   val_param; extern;
 
