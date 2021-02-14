@@ -3,21 +3,6 @@
 *   This library attempts to present a system-independent interface to common
 *   file manipulation operations.
 }
-type
-  file_map_handle_p_t =                {pointer to user handle for a mapped region}
-    ^file_map_handle_t;
-
-  file_conn_p_t =                      {pointer to a file connection handle}
-    ^file_conn_t;
-
-  file_pos_p_t =                       {pointer to a file position handle}
-    ^file_pos_t;
-
-  file_info_p_t =                      {pointer to data returned by FILE_INFO}
-    ^file_info_t;
-
-%include '(cog)lib/file_map.ins.pas';
-
 const
   file_subsys_k = -3;                  {subsystem ID number for FILE library}
 {
@@ -154,6 +139,7 @@ type
     file_del_list_k);                  {list activity to standard output}
   file_del_t = set of file_del_k_t;
 
+  file_conn_p_t = ^file_conn_t;
   file_conn_t = record                 {handle to an open file}
     rw_mode: file_rw_t;                {read/write mode}
     obty: file_obty_k_t;               {what kind of object connected to}
@@ -170,6 +156,7 @@ type
     sys: sys_sys_file_conn_t;          {system handle to file connection, if any}
     end;
 
+  file_pos_p_t = ^file_pos_t;
   file_pos_t = record                  {handle to a particular file position}
     conn_p: file_conn_p_t;             {points to connection handle pos valid for}
     sys: sys_sys_stream_pos_t;         {system handle to file position}
@@ -178,6 +165,7 @@ type
   file_names_ar_t =                    {array of arbitrary file names}
     array[1..1] of string_treename_t;
 
+  file_info_p_t = ^file_info_t;
   file_info_t = record                 {all the data returned by FILE_INFO routine}
     flags: file_iflags_t;              {indicates which fields are valid}
     ftype: file_type_k_t;              {file system object type}
@@ -208,6 +196,15 @@ type
     list_p: file_usbdev_p_t;           {pointer to first list entry}
     last_p: file_usbdev_p_t;           {pointer to last list entry}
     end;
+{
+*   Define FILE_MAP_HANDLE_T.  The internals of this data structure depend on
+*   the underlying operating system.  The definition is in a separate file so
+*   that it can be customized per target operating system.  The rest of the FILE
+*   library considers FILE_MAP_HANDLE_T an opaque object.
+}
+  file_map_handle_p_t = ^file_map_handle_t; {pointer to memory-mapped file handle}
+
+%include '(cog)lib/file_map.ins.pas';  {define FILE_MAP_HANDLE_T, customizable by OS}
 {
 *   Entry point definitions.
 }
