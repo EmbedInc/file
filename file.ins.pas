@@ -41,6 +41,8 @@ const
   file_stat_timeout_k = 32;            {timeout reached before I/O completed}
   file_stat_closed_k = 33;             {the I/O connection is closed}
   file_stat_wtxt_badobj_k = 34;        {text write not supported for this object type}
+  file_stat_not_callobj_k = 35;        {not a CALL object type}
+  file_stat_not_fmttext_k = 36;        {not TEXT format type}
 {
 *   Mnemonics for special flags for the line number (LNUM) field in a connection
 *   handle (FILE_CONN_T).
@@ -198,6 +200,16 @@ type
     list_p: file_usbdev_p_t;           {pointer to first list entry}
     last_p: file_usbdev_p_t;           {pointer to last list entry}
     end;
+
+  file_call_close_p_t = ^procedure (   {callback routine for closing CALL object type}
+    in out conn: file_conn_t);         {CALL type I/O connection being closed}
+    val_param;
+
+  file_call_wtxt_p_t = ^procedure (    {callback routine for writing line of text}
+    in    buf: univ string_var_arg_t;  {string to write as text line}
+    in out conn: file_conn_t;          {handle to this I/O connection, CALL object type}
+    out   stat: sys_err_t);            {completion status code, initialized to no err}
+    val_param;
 {
 *   Define FILE_MAP_HANDLE_T.  The internals of this data structure depend on
 *   the underlying operating system.  The definition is in a separate file so
@@ -210,6 +222,18 @@ type
 {
 *   Entry point definitions.
 }
+procedure file_call_set_close (        {set close object callback routine}
+  in out  conn: file_conn_t;           {I/O connection to set callback for}
+  in      call_p: file_call_close_p_t; {pointer to routine to call on closing}
+  out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
+procedure file_call_set_wtxt (         {set text write callback routine}
+  in out  conn: file_conn_t;           {I/O connection to set callback for}
+  in      call_p: file_call_wtxt_p_t;  {pointer to routine to call on text write}
+  out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
 procedure file_close (                 {close a connection, truncate when appropriate}
   in out  conn: file_conn_t);          {handle to file connection}
   val_param; extern;
@@ -389,6 +413,12 @@ procedure file_open_bin (              {open binary file for read and/or write}
   in      ext: string;                 {file name extensions, separated by blanks}
   in      rw_mode: file_rw_t;          {intended read/write access}
   out     conn: file_conn_t;           {handle to newly created file connection}
+  out     stat: sys_err_t);            {completion status code}
+  val_param; extern;
+
+procedure file_open_call_wtxt (        {open callback object for writing text lines}
+  in      name: univ string_var_arg_t; {name to set callback objec to}
+  out     conn: file_conn_t;           {handle to newly created I/O connection}
   out     stat: sys_err_t);            {completion status code}
   val_param; extern;
 

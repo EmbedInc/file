@@ -116,6 +116,12 @@ msg err34
   lan english -def
     Text write is not supported for this object type.  Object name "%p1s",
     object type ID %p2i.
+msg err35
+  lan english -def
+    Not a callback object type.  Object name "%p1s", object type ID %p2i.
+msg err36
+  lan english -def
+    The object "%p1s" is not open for text data format.
 /*
 /*   Other messages that do not have status codes.
 /*
