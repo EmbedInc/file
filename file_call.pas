@@ -13,6 +13,7 @@ type
   dat_p_t = ^dat_t;
   dat_t = record                       {private data for CALL object types}
     mem_p: util_mem_context_p_t;       {pointer to private memory context}
+    context_p: univ_ptr;               {arbitrary app context pointer}
     case file_fmt_k_t of               {what is the data format type ?}
 file_fmt_text_k: (                     {data is lines of text}
       text_write_p: file_call_wtxt_p_t; {text write callback routine pointer}
@@ -26,10 +27,11 @@ procedure file_call_close (            {close I/O object of CALL type}
 {
 ********************************************************************************
 *
-*   Subroutine FILE_OPEN_CALL_WTXT (NAME, CONN, STAT)
+*   Subroutine FILE_OPEN_CALL_WTXT (NAME, CONTEXT_P, CONN, STAT)
 *
 *   Open a callback object for text write.  The object will be named NAME.  This
-*   name is only meaningful to the application.
+*   name is only meaningful to the application.  CONTEXT_P is an arbitrary
+*   pointer that will be passed to all callback routines.
 *
 *   No callback routines will be installed.  When no callback routine is
 *   installed for a particular I/O operation, that operation is ignored, but no
@@ -37,6 +39,7 @@ procedure file_call_close (            {close I/O object of CALL type}
 }
 procedure file_open_call_wtxt (        {open callback object for writing text lines}
   in      name: univ string_var_arg_t; {name to set callback objec to}
+  in      context_p: univ_ptr;         {context pointer to be passed to callbacks}
   out     conn: file_conn_t;           {handle to newly created I/O connection}
   out     stat: sys_err_t);            {completion status code}
   val_param;
@@ -65,6 +68,7 @@ begin
     sizeof(dat_p^), mem_p^, false, dat_p);
 
   dat_p^.mem_p := mem_p;               {fill in our private data}
+  dat_p^.context_p := context_p;
   dat_p^.text_write_p := nil;
   dat_p^.text_close_p := nil;
   conn.data_p := dat_p;                {save pointer to our private data}
@@ -93,7 +97,8 @@ begin
   case conn_p^.fmt of                  {what is the data format ?}
 file_fmt_text_k: begin                 {data is lines of text}
       if dat_p^.text_close_p <> nil then begin {app installed close routine ?}
-        dat_p^.text_close_p^ (conn_p^); {call the app callback routine}
+        dat_p^.text_close_p^ (         {call the app callback routine}
+          dat_p^.context_p, conn_p^);
         end;
       end;
     end;                               {end of data format cases}
@@ -197,10 +202,12 @@ begin
     return;
     end;
 
+  conn.lnum := conn.lnum + 1;          {update to line number of this line}
   dat_p := conn.data_p;                {get pointer to our private data}
 
   if dat_p^.text_write_p <> nil then begin {callback routine exists ?}
     dat_p^.text_write_p^ (             {call the callback routine}
+      dat_p^.context_p,                {pass app's arbitrary context pointer}
       buf,                             {string to write as a text line}
       conn,                            {data for this I/O connection}
       stat);                           {completion status}

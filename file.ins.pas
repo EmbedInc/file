@@ -202,10 +202,12 @@ type
     end;
 
   file_call_close_p_t = ^procedure (   {callback routine for closing CALL object type}
+    in    context_p: univ_ptr;         {context pointer from OPEN call}
     in out conn: file_conn_t);         {CALL type I/O connection being closed}
     val_param;
 
   file_call_wtxt_p_t = ^procedure (    {callback routine for writing line of text}
+    in    context_p: univ_ptr;         {context pointer from OPEN call}
     in    buf: univ string_var_arg_t;  {string to write as text line}
     in out conn: file_conn_t;          {handle to this I/O connection, CALL object type}
     out   stat: sys_err_t);            {completion status code, initialized to no err}
@@ -418,6 +420,7 @@ procedure file_open_bin (              {open binary file for read and/or write}
 
 procedure file_open_call_wtxt (        {open callback object for writing text lines}
   in      name: univ string_var_arg_t; {name to set callback objec to}
+  in      context_p: univ_ptr;         {context pointer to be passed to callbacks}
   out     conn: file_conn_t;           {handle to newly created I/O connection}
   out     stat: sys_err_t);            {completion status code}
   val_param; extern;
