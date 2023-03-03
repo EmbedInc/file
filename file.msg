@@ -427,3 +427,6 @@ msg test_map_len
 msg test_server_rem_name
   lan english -def
     Error on trying to get name of client machine from its address.
+msg writing_file
+  lan english -def
+    Writing "%p1s"
