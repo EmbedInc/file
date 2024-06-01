@@ -7,16 +7,16 @@ rem
 setlocal
 call build_pasinit
 
-call src_prog %srcdir% test_copy %1
-call src_prog %srcdir% test_del %1
-call src_prog %srcdir% test_dir %1
-call src_prog %srcdir% test_embusb %1
-call src_prog %srcdir% test_map %1
-call src_prog %srcdir% test_msg %1
-call src_prog %srcdir% test_newer %1
-call src_prog %srcdir% test_rename %1
-call src_prog %srcdir% test_server %1
-call src_prog %srcdir% test_streams %1
-call src_prog %srcdir% test_tcp %1
-call src_prog %srcdir% test_text %1
-call src_prog %srcdir% test_txfile %1
+call src_progl test_copy
+call src_progl test_del
+call src_progl test_dir
+call src_progl test_embusb
+call src_progl test_map
+call src_progl test_msg
+call src_progl test_newer
+call src_progl test_rename
+call src_progl test_server
+call src_progl test_streams
+call src_progl test_tcp
+call src_progl test_text
+call src_progl test_txfile

@@ -78,5 +78,3 @@ call src_pas %srcdir% %libname%_wtxt_file %1
 
 call src_lib %srcdir% %libname%
 call src_msg %srcdir% %libname%
-
-copya file_map.ins.pas (cog)lib/file_map.ins.pas

@@ -213,14 +213,11 @@ type
     out   stat: sys_err_t);            {completion status code, initialized to no err}
     val_param;
 {
-*   Define FILE_MAP_HANDLE_T.  The internals of this data structure depend on
-*   the underlying operating system.  The definition is in a separate file so
-*   that it can be customized per target operating system.  The rest of the FILE
-*   library considers FILE_MAP_HANDLE_T an opaque object.
+*   The internals of FILE_MAP_HANDLE_T depend on the underlying operating
+*   system.  It is therefore defined in the SYS_SYS.INS.PAS include file that is
+*   customized per target system.
 }
   file_map_handle_p_t = ^file_map_handle_t; {pointer to memory-mapped file handle}
-
-%include '(cog)lib/file_map.ins.pas';  {define FILE_MAP_HANDLE_T, customizable by OS}
 {
 *   Entry point definitions.
 }
